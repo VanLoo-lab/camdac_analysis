@@ -1,0 +1,7 @@
+pdist	sample1	sample2	analysis
+0.29929937289383	LORC-02_bulk	LORC-02_normal	bulk_vs_normal
+0.232310320092938	LORC-60_bulk	LORC-60_normal	bulk_vs_normal
+0.332303568890906	LORC-62_bulk	LORC-62_normal	bulk_vs_normal
+0.106427990346086	LORC-68_bulk	LORC-68_normal	bulk_vs_normal
+0.209575293291874	YORC-25_bulk	YORC-25_normal	bulk_vs_normal
+0.0840750829890806	YORC-41_bulk	YORC-41_normal	bulk_vs_normal

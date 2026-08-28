@@ -1,0 +1,16 @@
+# ---- Data & large outputs (keep out of git) ----
+*.bam
+*.bai
+
+# ---- R ----
+.Rhistory
+.Rapp.history
+.Ruserdata
+.Rproj.user/
+*.Rproj
+.Renviron
+
+# ---- OS / editor ----
+.DS_Store
+.vscode/
+.idea/
