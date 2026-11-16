@@ -4,6 +4,16 @@
 #' @author Lili Larose Cadieux
 
 # Load library
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c("readr", "GenomicRanges", "data.table", "ggplot2", "gridExtra", "fst")
 invisible(lapply(x, function(y) 
   suppressWarnings(
@@ -47,7 +57,7 @@ normal_lists <- list()
 for(patient_id in patient_ids){
   print(patient_id)
   
-  if (patient_id != "LTX164") {
+  if (patient_id != resolve_tx_patient_id("CRUK0047", .tx_map)) {
     path_patient <- paste0(tx_dir, patient_id, "/",sep="")
     f_nm <-
       paste0(path_patient, "/Allelecounts/N/",
@@ -324,7 +334,7 @@ for(suffix1 in suffixs){
       }
   if(suffix1 == "149"){
       patient_info_tmp <-
-        patient_info[Patient=="LTX149"]
+        patient_info[Patient=="CRUK0084"]
       }
 
   patient_ids <- unique(patient_info_tmp$Patient)

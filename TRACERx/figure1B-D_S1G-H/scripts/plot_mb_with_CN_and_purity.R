@@ -4,6 +4,16 @@
 #' @author Lili Larose Cadieux
 
 # Load library
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c("data.table", "stringr", "ggplot2", "gridExtra", "scales", "optparse")
 
 invisible(lapply(x, function(y) {
@@ -326,7 +336,7 @@ option_list <- list(
               default = NULL,
               help = paste0(
                 "Comma-separated patient ID(s). ",
-                "Defaults: LTX064 (tracerx); DTB-097,DTB-170 (mcrpc)"
+                "Defaults: CRUK0062 (tracerx); DTB-097,DTB-170 (mcrpc)"
               )),
   make_option(c("--tx_dir"), type = "character",
               default = "~/rdeocd/txMeth",
@@ -351,6 +361,9 @@ option_list <- list(
               help = "mCRPC normal panel file within --input_dir [default %default]")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
+if (!is.null(opt$patient_id) && nzchar(opt$patient_id)) {
+  opt$patient_id <- paste(resolve_tx_patient_id(trimws(unlist(strsplit(opt$patient_id, ",", fixed = TRUE))), .tx_map), collapse = ",")
+}
 
 project <- tolower(opt$project)
 if (!project %in% c("tracerx", "mcrpc")) {
@@ -369,7 +382,7 @@ if (!dir.exists(output_dir)) {
 }
 
 patient_ids <- if (is.null(opt$patient_id)) {
-  if (project == "tracerx") "LTX064" else c("DTB-097", "DTB-170")
+  if (project == "tracerx") "CRUK0062" else c("DTB-097", "DTB-170")
 } else {
   trimws(unlist(strsplit(opt$patient_id, ",", fixed = TRUE)))
 }
@@ -400,13 +413,13 @@ if (project == "tracerx") {
 
     for (sample_id in sample_ids) {
       # Load the CN and normal annotated tumour data
-      if (reseg == FALSE | patient_id %in% c("LTX143", "LTX164")) {
+      if (reseg == FALSE | patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
         load(
           paste0(path_patient, "/Methylation/", sample_id,
                  "/purified_tumour_DMP_calls.RData")
         )
       }
-      if (reseg == TRUE & !patient_id %in% c("LTX143", "LTX164")) {
+      if (reseg == TRUE & !patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
         load(
           paste0(path_patient, "/Methylation/", sample_id,
                  "/re_segmented/purified_tumour_DMP_calls.RData")
@@ -447,14 +460,14 @@ if (project == "tracerx") {
       cat(top_multi, sep = "\n")
 
       # Load the copy number segments file
-      if (reseg == FALSE | patient_id %in% c("LTX143", "LTX164")) {
+      if (reseg == FALSE | patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
         copy_number_filename <-
           paste(patient_id, sample_id, "ascat.output.RData", sep = ".")
         file_CN <-
           paste0(path_patient, "/Copy_number/", sample_id, "/",
             copy_number_filename)
       }
-      if (reseg == TRUE & !patient_id %in% c("LTX143", "LTX164")) {
+      if (reseg == TRUE & !patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
         copy_number_filename <-
           paste(patient_id, sample_id, "ascat.output.resegmented.RData",
             sep = ".")

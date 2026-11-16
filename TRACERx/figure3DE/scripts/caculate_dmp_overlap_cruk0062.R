@@ -1,5 +1,5 @@
 #' @description Intra-tumour comparison of pure tumour (mt-mt) versus bulk (mb-mb)
-#' differentially methylated positions (DMPs) for TRACERx patient LTX064 (CRUK0062).
+#' differentially methylated positions (DMPs) for TRACERx patient CRUK0062.
 #' Overlap statistics and Venn-style figures follow the logic in
 #' \code{Notes_mt_mt_vs_mb_mb_DMPs_figure5FG.R}.
 #'
@@ -9,6 +9,16 @@
 # Load libraries
 ################################################################################
 
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c(
   "DescTools", "eulerr", "ggplot2", "data.table", "limma", "dplyr", "ggforce"
 )
@@ -23,11 +33,11 @@ invisible(lapply(x, function(y) {
 rm(x)
 
 ################################################################################
-# Paths and identifiers — CRUK0062 / LTX064 only
+# Paths and identifiers — CRUK0062 only
 ################################################################################
 
 # Internal TRACERx ID and published study identifier
-patient_id <- "LTX064"
+patient_id <- resolve_tx_patient_id("CRUK0062", .tx_map)
 cruk_id <- "CRUK0062"
 
 parent_dir <- path.expand("~/rdeocd/txMeth/")
@@ -63,7 +73,7 @@ cols <- c(
 )
 
 ################################################################################
-# Load and merge per-region DMP calls (all samples for LTX064)
+# Load and merge per-region DMP calls (all samples for CRUK0062)
 ################################################################################
 
 df_list1 <- NULL

@@ -1,6 +1,16 @@
 #' @description Get methylation phased with SNV
 #' @author Lili Larose Cadieux
 
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 source("~/.Rprofile")
 
 extend <- function(x, upstream=0, downstream=0) {
@@ -194,7 +204,7 @@ patient_info <- patient_info[!grepl("LN", Sample), ]
 # remove lymph nodes
 patient_ids <- unique(patient_info$Patient)
 
-for(patient_id in patient_ids[patient_ids != "LTX164"]) {
+for(patient_id in patient_ids[patient_ids != "CRUK0047"]) {
   path_patient <- paste0("~/rdeocd/txMeth/", patient_id, "/")
   path <- path_patient 
   gender <- as.character(
@@ -401,8 +411,8 @@ for(patient_id in patient_ids[patient_ids != "LTX164"]) {
  
       # get bam_file
       bam_file=paste0(bam_dir,patient_id,"/RRBS/Nugen/",patient_id,"_",sample_id,"_n6dupsRemoved_sorted.bam")
-      if(patient_id == "LTX064") {bam_file=paste0(bam_dir,patient_id,"/RRBS/Nugen/",patient_id,"_",sample_id,"_n6dupsRemoved_firstmateonly_sorted_reheader.bam")}
-      if((patient_id == "LTX001" & sample_id =="N")|(patient_id == "LTX180" & sample_id =="R2")|(patient_id == "LTX225" & sample_id =="R2")) {
+      if(patient_id == resolve_tx_patient_id("CRUK0062", .tx_map)) {bam_file=paste0(bam_dir,patient_id,"/RRBS/Nugen/",patient_id,"_",sample_id,"_n6dupsRemoved_firstmateonly_sorted_reheader.bam")}
+      if((patient_id == resolve_tx_patient_id("CRUK0034", .tx_map) & sample_id =="N")|(patient_id == resolve_tx_patient_id("CRUK0049", .tx_map) & sample_id =="R2")|(patient_id == resolve_tx_patient_id("CRUK0014", .tx_map) & sample_id =="R2")) {
         bam_file=paste0(bam_dir,patient_id,"/RRBS/Nugen/",patient_id,"_",sample_id,"_top_n6dupsRemoved_sorted.bam")
       }    
       
@@ -1078,7 +1088,7 @@ for(patient_id in patient_ids[patient_ids != "LTX164"]) {
 rm(df_tumour, all_loci, df_SNVs, df_SNVs2, df_SNV_loci, gr_SNV_loci, gr_SNVs, gr_SNPs)
 
 list_patients <- list()
-for(patient_id in patient_ids[patient_ids!="LTX164"]) {
+for(patient_id in patient_ids[patient_ids!="CRUK0047"]) {
   path_patient <- paste0("~/rdeocd/txMeth/",patient_id,"/")
   path = path_patient 
   gender=as.character(gender_list[match(patient_id,gender_list$SampleID),"Gender"])

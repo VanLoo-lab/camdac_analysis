@@ -6,6 +6,16 @@
 #' @author Lili Larose Cadieux
 
 # Load library
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c("data.table", "ggplot2", "gridExtra", "GenomicRanges", "dplyr",
   "optparse")
 invisible(lapply(x, function(y) 
@@ -90,7 +100,7 @@ patient_info[, c("WGD_raw", "WGD_reseg", "WGS_WGD") := as.logical(NA)]
 
 # get patient ids
 patient_files <- list.files(tracerx_dir, recursive = FALSE)
-patient_ids <- grep("LTX", patient_files, value = TRUE)
+patient_ids <- grep("^[A-Za-z]+[0-9]", patient_files, value = TRUE)
 
 # create variable to store copy number
 list_gr <- GRangesList()
@@ -147,7 +157,7 @@ for(patient_id in patient_ids) {
           WGD <- ifelse(2.95 - (2 * frac_LOH) - psi_grid < 0, TRUE, FALSE)
           psi_plot <- seg[, sum((nMajor + nMinor) * length) / sum(length)]
 
-          if (patient_id %in% c("LTX143", "LTX164")) {
+          if (patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
             counter <- length(list_gr) + 1
 
             list_gr[[counter]] <- 
@@ -172,7 +182,7 @@ for(patient_id in patient_ids) {
       patient_info$WGD_raw[rw_id] <- WGD
 
       # Get multi sample RRBS purity and ploidy
-      if (!patient_id %in% c("LTX143", "LTX164")) {
+      if (!patient_id %in% c(resolve_tx_patient_id("CRUK0010", .tx_map), resolve_tx_patient_id("CRUK0047", .tx_map))) {
         # load the resegmented copy number data
         file_nm <-
           paste0(patient_id, ".", sample_id,
@@ -778,31 +788,54 @@ dt_tracerx[, "perc_overlap" := as.numeric(as.character(perc_copy_overlap))]
 dt_ccrc_rrbs[, "perc_overlap" := as.numeric(as.character(perc_overlap))]
 dt_ccrc_wgbs[, "perc_overlap" := as.numeric(as.character(perc_overlap))]
 
+# TRACERx RRBS vs WGS (samples with matched WGS ASCAT; from rrbs_wgs_intersections.R)
+dt_tracerx_wgs <- fread(file.path(in_dir, "TRACERx_RRBS_WGS_overlap.txt"))
+dt_tracerx_wgs[, "perc_overlap" := as.numeric(as.character(perc_overlap))]
+dt_tracerx_wgs[, "perc_overlap_1" := as.numeric(as.character(perc_overlap_1))]
+
 # combine all copy number data
 dt_with_matched_normal <- rbind(
-  dt_tracerx[, .(perc_overlap, "perc_overlap_1" = perc_copy_within_1,
+  dt_tracerx[, .(perc_overlap, "perc_overlap_1" = as.numeric(as.character(perc_copy_within_1)),
     method = "RRBS", shaps = "WES")],
+  dt_tracerx_wgs[, .(perc_overlap, perc_overlap_1, method = "RRBS", shaps = "WGS")],
   dt_ccrc_rrbs[, .(perc_overlap, perc_overlap_1, method = "RRBS", shaps = "WGS")],
-  dt_ccrc_wgbs[, .(perc_overlap, perc_overlap_1, method = "WGBS", shaps = "WGS")]          
+  dt_ccrc_wgbs[, .(perc_overlap, perc_overlap_1, method = "WGBS", shaps = "WGS")]
 )
 dt_with_matched_normal[, comparison := paste(method, "vs", shaps)]
 dt_with_matched_normal[, table(comparison)]
 
-# plot ploidy BS-seq vs other platforms
+# plot ASCN overlap; black outline for RRBS/WGBS vs WGS points
 dt_with_matched_normal[, "x" :=
   nrow(dt_with_matched_normal) - rank(perc_overlap)
   ]
+dt_with_matched_normal[, outlined :=
+  comparison %in% c("RRBS vs WGS", "WGBS vs WGS")]
+# border-capable shapes for WGS comparisons (fill + black stroke)
+shape_vals <- c("RRBS vs WES" = 15, "RRBS vs WGS" = 21, "WGBS vs WGS" = 23)
+
 p_matched_normal <-
-  ggplot(dt_with_matched_normal) +
-  geom_point(aes(x = x, y = perc_overlap, shape = comparison),
+  ggplot(dt_with_matched_normal, aes(x = x, shape = comparison)) +
+  # exact overlap
+  geom_point(data = dt_with_matched_normal[outlined == FALSE],
+             aes(y = perc_overlap),
              size = 3, alpha = 0.95, color = "orange2") +
-  geom_point(aes(x = x, y = perc_overlap_1, shape = comparison),
+  geom_point(data = dt_with_matched_normal[outlined == TRUE],
+             aes(y = perc_overlap),
+             size = 3, alpha = 0.95, fill = "orange2", color = "black",
+             stroke = 0.9) +
+  # within-1 overlap
+  geom_point(data = dt_with_matched_normal[outlined == FALSE],
+             aes(y = perc_overlap_1),
              size = 3, alpha = 0.95, color = "darkgreen") +
+  geom_point(data = dt_with_matched_normal[outlined == TRUE],
+             aes(y = perc_overlap_1),
+             size = 3, alpha = 0.95, fill = "darkgreen", color = "black",
+             stroke = 0.9) +
   theme_classic() +
-  scale_shape_manual(name = "comparison",
-    values = c("RRBS vs WES" = 15, "RRBS vs WGS" = 16, "WGBS vs WGS" = 18)) +
+  scale_shape_manual(name = "comparison", values = shape_vals) +
   scale_y_continuous("Percentage overlap", breaks = seq(0, 100, 10), limits = c(0, 100)) +
-  scale_x_continuous("Sample", breaks = seq(0, nrow(dt_with_matched_normal), 25)) 
+  scale_x_continuous("Sample",
+    breaks = seq(0, nrow(dt_with_matched_normal), 25))
 
 # save
 out_f_nm <- file.path(work_dir, out_dir, "bsseq_vs_dnaseq_ascn_overlap.pdf")

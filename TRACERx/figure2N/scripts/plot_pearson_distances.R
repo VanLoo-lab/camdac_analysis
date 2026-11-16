@@ -2,6 +2,16 @@
 #' @author Lili Larose Cadieux
 
 # Load library
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c("stringr", "grid", "gridExtra", "ggdendro", "scales", "ggplot2",
        "data.table", "readr", "ggfortify", "ggridges")
 load_lib <- function (x) {
@@ -57,9 +67,9 @@ f_nm <- file.path(parent_dir_facs, "data",
 patient_info_facs <- fread(file = f_nm, sep = "\t")
 
 # annotate the population (1 = normal, 2 = tumor)
-patient_info_facs[grepl("LTX0", Patient),
+patient_info_facs[(nchar(as.character(Patient)) == 6L & substr(as.character(Patient), 4, 4) == "0"),
   pop_id := substr(Sample_Name, 7, 10)]
-patient_info_facs[!grepl("LTX0", Patient),
+patient_info_facs[!(nchar(as.character(Patient)) == 6L & substr(as.character(Patient), 4, 4) == "0"),
   pop_id := substr(Sample_Name, 8, 11)]
 
 # remove any "," in the numbers
@@ -402,12 +412,12 @@ for (name in c("mb", "mt")) {
 # male vs female
 mal <- as.character(patient_info[Sex == "Male", unique(Patient)])
 fem <- as.character(patient_info[Sex == "Female", unique(Patient)])
-fem <- fem[fem != "LTX164"]
+fem <- fem[fem != resolve_tx_patient_id("CRUK0047", .tx_map)]
 
 # focus on normal-normal
 tmp <- as.data.frame(as.matrix(dist_mb))
-tmp <- tmp[grepl("Normal", rownames(tmp)) & rownames(tmp) != "LTX164_Normal",
-           grepl("Normal", colnames(tmp)) & colnames(tmp) != "LTX164_Normal"]
+tmp <- tmp[grepl("Normal", rownames(tmp)) & rownames(tmp) != paste0(resolve_tx_patient_id("CRUK0047", .tx_map), "_Normal"),
+           grepl("Normal", colnames(tmp)) & colnames(tmp) != paste0(resolve_tx_patient_id("CRUK0047", .tx_map), "_Normal")]
 dist_nn <- as.numeric(unlist(as.dist(as.matrix(tmp))))
 tmp <- tmp[substr(rownames(tmp), 1, 6) %in% mal,
       substr(rownames(tmp), 1, 6) %in% fem]

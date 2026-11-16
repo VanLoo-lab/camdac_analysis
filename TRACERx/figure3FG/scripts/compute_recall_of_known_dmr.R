@@ -308,7 +308,7 @@ dt_regions_merge <-
     region_bulk_methylation[, .SD, .SDcols = c(keep_cols)]
     )
 
-# format histology, LTX and CRUKIDs
+# format histology and CRUKIDs
 dt_regions_merge[, hist := patient_info[match(dt_regions_merge$patient, Patient), Histology]]
 dt_regions_merge[, CRUKID := patient_info[match(dt_regions_merge$patient, Patient), CRUKID]]
 dt_regions_merge[, hist := ifelse(grepl("adeno", hist), "LUAD", "LUSC")]
@@ -523,7 +523,7 @@ for (prefx in prefixs) {
 # bind the results
 dt_proms <- rbindlist(summary_list)
 
-# format histology, LTX and CRUKIDs
+# format histology and CRUKIDs
 dt_proms[, hist := patient_info[match(dt_proms$patient, Patient), Histology]]
 dt_proms[, CRUKID := patient_info[match(dt_proms$patient, Patient), CRUKID]]
 dt_proms[, hist := ifelse(grepl("adeno", hist), "LUAD", "LUSC")]
@@ -1054,7 +1054,7 @@ dt_proms <- rbindlist(summary_list)
 # print the number of unique genes
 length(unique(dt_proms$ensembl_gene_id))
 
-# format histology, LTX and CRUKIDs
+# format histology and CRUKIDs
 dt_proms[, hist := patient_info[match(dt_proms$patient, Patient), Histology]]
 dt_proms[, patient_crukid :=
                 patient_info[match(dt_proms$patient, Patient), CRUKID]]

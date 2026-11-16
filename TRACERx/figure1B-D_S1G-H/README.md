@@ -13,7 +13,7 @@ Rscript scripts/plot_mb_with_CN_and_purity.R \
   --project tracerx \
   --work_dir ~/data/CAMDAC_paper/figure1B-D_S1G-H \
   --output_dir outputs \
-  --patient_id LTX064 \
+  --patient_id CRUK0062 \
   --tx_dir ~/rdeocd/txMeth \
   --reseg TRUE \
   --clinical_info tx100clinicalinfo_RRBS_published_status_immune_clusters_purity_ploidy_CpG_cov.txt

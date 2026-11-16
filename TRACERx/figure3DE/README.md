@@ -2,14 +2,14 @@
 
 Compare pure-tumour (mt–mt) versus bulk (mb–mb) differentially methylated
 position (DMP) overlap for TRACERx, including a focused intra-tumour analysis
-of CRUK0062 and genome-wide inter-/intra-patient sampling by purity.
+of CRUK0062 (CRUK0062) and genome-wide inter-/intra-patient sampling by purity.
 
-`Notes_mt_mt_vs_mb_mb_DMPs_figure5FG.R` is the exploratory notebook that the
-other scripts follow. Main runnable scripts write under `outputs/`.
+Main runnable scripts write under `outputs/`. The exploratory PhD notebook
+(`Notes_mt_mt_vs_mb_mb_DMPs_figure5FG.R`) lives under `~/data/CAMDAC_paper/figure3DE/scripts/`.
 
-## CRUK0062 intra-tumour DMP overlap
+## CRUK0062 / CRUK0062 intra-tumour DMP overlap
 
-Requires per-region purified DMP calls under `~/rdeocd/txMeth/<patient_id>`:
+Requires per-region purified DMP calls under `~/rdeocd/txMeth/CRUK0062`:
 
 ```bash
 Rscript scripts/caculate_dmp_overlap_cruk0062.R

@@ -18,6 +18,18 @@ Rscript scripts/rrbs_dnaseq_intersections.R \
   --txwes_dir /path/to/TRACERx_WES
 ```
 
+TRACERx RRBS–WGS ASCN overlap for the samples with WGS ASCAT solutions
+(currently n = 7) is built from RRBS + WGS outputs under `txMeth`:
+
+```bash
+Rscript scripts/rrbs_wgs_intersections.R \
+  --wdir ~/data/CAMDAC_paper/figure1H-K \
+  --txmeth_dir ~/rdeocd/txMeth
+```
+
+This writes `inputs/TRACERx_RRBS_WGS_overlap.txt` and
+`inputs/dt_tracerx_rrbs_wgs.RData`.
+
 ## Figure panels
 
 When run with `Rscript`, the working directory defaults to

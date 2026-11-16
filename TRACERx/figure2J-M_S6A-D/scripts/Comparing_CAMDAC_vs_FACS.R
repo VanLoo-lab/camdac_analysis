@@ -7,6 +7,16 @@
 #' * CAMDAC bulk tumour vs. FACS purified tumour
 
 # Load libraries
+## Prefer CRUKID in defaults; resolve to Patient (LTX*) via clinical table for paths
+.shared <- file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", "..", "_shared", "resolve_tx_ids.R")
+.shared <- normalizePath(.shared, mustWork = FALSE)
+if (!file.exists(.shared)) {
+  .shared <- normalizePath(file.path("..", "..", "_shared", "resolve_tx_ids.R"), mustWork = FALSE)
+}
+if (!exists("resolve_tx_patient_id", mode = "function")) {
+  if (file.exists(.shared)) source(.shared) else stop("Missing TRACERx/_shared/resolve_tx_ids.R")
+}
+.tx_map <- load_tx_patient_map()
 x <- c("stringr", "GenomicRanges", "scales", "ggplot2", "gridExtra",
        "data.table", "readr", "fst")
 load_lib <- function (x) {
@@ -49,8 +59,8 @@ patient_info <- patient_info[,
 ]
 
 # annotate FACS population (1 = Normal, 2 = tumor)
-patient_info[grepl("LTX0", Patient), pop_id := substr(Sample_Name, 7, 10)]
-patient_info[!grepl("LTX0", Patient), pop_id := substr(Sample_Name, 8, 11)]
+patient_info[(nchar(as.character(Patient)) == 6L & substr(as.character(Patient), 4, 4) == "0"), pop_id := substr(Sample_Name, 7, 10)]
+patient_info[!(nchar(as.character(Patient)) == 6L & substr(as.character(Patient), 4, 4) == "0"), pop_id := substr(Sample_Name, 8, 11)]
 
 # load clinical patient_info
 f_nm <- file.path(parent_dir2,
@@ -65,7 +75,7 @@ patient_clin <- patient_clin[!grepl("LN", Sample), ]
 patient_info[, CRUKID := patient_clin[match(patient_info$Patient, Patient), CRUKID]]
 patient_info[patient_clin, "CRUKID2" := i.CRUKID, on = .(Patient)]
 
-# annotate LTX sample ID
+# annotate sample ID
 patient_info[, LTXID := paste0(patient_info$Patient, "_", patient_info$Region)]
 
 # annotate purity and ploidy
