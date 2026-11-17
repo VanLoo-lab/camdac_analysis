@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# Figure 4C-F: allele-specific methylation of one example tumour (CRUK0084 = CRUK0084).
+# Figure 4C-F: allele-specific methylation of one example tumour (CRUK0084).
 #
 #   4C  histogram of CpG counts vs m_t (R1, ASCN 1_1, hyper-methylated CpGs)
 #   4D  m_t,1 vs m_t,2 (R1, same CpGs)
@@ -8,8 +8,9 @@
 #   4F  m_t,1 - m_t,2 of R1 vs R3 / R1 vs R2 (same CpGs)
 #
 # PLOT ONLY: reads the per-region DMP_classification_<sample>.RData written by
-# compute_DMP_classification.R (unchanged) and the recovered Jul-2021 UMAP CpG set
-# (outputs/ASM_UMAP_recovered_from_pdf.RData) to select the 4E/4F CpGs. Nothing is overwritten.
+# compute_DMP_classification.R and the stored UMAP CpG set
+# (outputs/ASM_UMAP_recovered_from_pdf.RData, object umap_recovered) to select the 4E/4F CpGs.
+# Nothing is overwritten.
 #
 # Source: Notes_ASM_plots_14Jul2021.R (4C/D: L160-290 sample plots; 4E/F: L755-905).
 # Circles / arrows / text are hand annotations in the paper; they are re-drawn here in data
@@ -34,8 +35,9 @@ if (!exists("resolve_tx_patient_id", mode = "function")) {
 option_list <- list(
   optparse::make_option("--tx_dir", type = "character", default = "~/rdeocd/txMeth"),
   optparse::make_option("--work_dir", type = "character", default = "~/data/CAMDAC_paper/figure4"),
-  optparse::make_option("--recovered_rdata", type = "character",
-    default = "~/data/CAMDAC_paper/figure4/outputs/ASM_UMAP_recovered_from_pdf.RData"),
+  optparse::make_option("--umap_rdata", type = "character",
+    default = "~/data/CAMDAC_paper/figure4/outputs/ASM_UMAP_recovered_from_pdf.RData",
+    help = "RData with object umap_recovered (per-patient CpG UMAP tables) [default %default]"),
   optparse::make_option("--crukid", type = "character", default = "CRUK0084"),
   optparse::make_option("--ascn", type = "character", default = "1_1"),
   optparse::make_option("--annotate", type = "logical", default = TRUE)
@@ -69,7 +71,8 @@ cd <- reg[[s1]][multip == opt$ascn]
 message("4C/D: ", s1, " multip ", opt$ascn, ": ", nrow(cd), " CpGs")
 
 ## ---- shared CpG set for 4E/F ----------------------------------------------------------
-load(path.expand(opt$recovered_rdata))                                # umap_recovered
+load(path.expand(opt$umap_rdata))                                # umap_recovered
+if (!exists("umap_recovered")) stop("Expected object umap_recovered in ", opt$umap_rdata)
 keys <- unique(umap_recovered[[patient]][, .(chrom = as.character(chrom), start, end)])
 ef <- Reduce(function(a, b) merge(a, b, by = c("chrom", "start", "end")),
              lapply(samples, function(s) {
